@@ -316,34 +316,16 @@ goog.scope(function() {
     };
 
     types.UUIDfromString = function uuidFromString(s) {
-        s = s.replace(/-/g, "");
+        // Parse UUID directly without regex replace
+        // UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+        // Indices:     0       8 9   13 14  18 19  23 24          36
+        var hi32 = (parseInt(s.substring(0,8), 16)) | 0;
+        var lo32 = (parseInt(s.substring(9,13) + s.substring(14,18), 16)) | 0;
+        var hi64 = Long.fromBits(lo32, hi32);
 
-        var hi64 = null,
-            lo64 = null,
-            hi32 = 0,
-            lo32 = 0,
-            off  = 24,
-            i    = 0;
-
-        for(hi32=0, i=0, off= 24; i < 8; i+=2, off-=8) {
-            hi32 |= (parseInt(s.substring(i,i+2),16) << off);
-        }
-
-        for(lo32=0, i=8, off=24; i < 16; i+=2, off-=8) {
-            lo32 |= (parseInt(s.substring(i,i+2),16) << off);
-        }
-
-        hi64 = Long.fromBits(lo32, hi32);
-
-        for(hi32=0, i=16, off=24; i < 24; i+=2, off-=8) {
-            hi32 |= (parseInt(s.substring(i,i+2),16) << off);
-        }
-
-        for(lo32=0, i=24, off=24; i < 32; i+=2, off-=8) {
-            lo32 |= (parseInt(s.substring(i,i+2),16) << off);
-        }
-
-        lo64 = Long.fromBits(lo32, hi32);
+        hi32 = (parseInt(s.substring(19,23) + s.substring(24,28), 16)) | 0;
+        lo32 = (parseInt(s.substring(28,36), 16)) | 0;
+        var lo64 = Long.fromBits(lo32, hi32);
 
         return new types.UUID(hi64, lo64);
     };
@@ -971,9 +953,9 @@ goog.scope(function() {
         } else {
             var newEntry = true;
             for(var i = 0; i < bucket.length; i+=2) {
-                if(eq.equals(v, bucket[i])) {
+                if(eq.equals(k, bucket[i])) {
                     newEntry = false;
-                    bucket[i] = v;
+                    bucket[i+1] = v;
                     break;
                 }
             }

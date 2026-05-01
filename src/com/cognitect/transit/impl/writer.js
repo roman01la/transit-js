@@ -311,23 +311,25 @@ goog.scope(function () {
                 }
             } else {
                 if (obj.forEach != null) {
-                    if (writer.stringableKeys(em, obj)) {
-                        arr = em.unpack(obj);
+                    arr = em.unpack(obj);
+                    if (arr && writer.stringableKeys(em, obj)) {
+                        // Fast path for unpackable maps with stringable keys:
+                        // skip the second unpack call since we already have arr
                         ret = ["^ "];
-                        if (arr) {
-                            for (; i < arr.length; i += 2) {
-                                ret.push(writer.marshal(em, arr[i], true, cache));
-                                ret.push(writer.marshal(em, arr[i + 1], false, cache));
-                            }
-                        } else {
-                            obj.forEach(function (v, k) {
-                                ret.push(writer.marshal(em, k, true, cache));
-                                ret.push(writer.marshal(em, v, false, cache));
-                            });
+                        for (; i < arr.length; i += 2) {
+                            ret.push(writer.marshal(em, arr[i], true, cache));
+                            ret.push(writer.marshal(em, arr[i + 1], false, cache));
                         }
                         return ret;
+                    } else if (!arr && writer.stringableKeys(em, obj)) {
+                        ret = ["^ "];
+                        obj.forEach(function (v, k) {
+                            ret.push(writer.marshal(em, k, true, cache));
+                            ret.push(writer.marshal(em, v, false, cache));
+                        });
+                        return ret;
                     } else {
-                        arr = em.unpack(obj);
+                        if (!arr) { arr = false; }
                         rep = [];
                         tag = em.emitString(d.ESC_TAG, "cmap", "", true, cache);
                         if (arr) {

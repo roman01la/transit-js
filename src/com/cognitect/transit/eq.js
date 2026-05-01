@@ -92,7 +92,7 @@ eq.stringCodeCacheSize = 0;
  * @const
  * @type {number}
  */
-eq.STR_CACHE_MAX       = 256;
+eq.STR_CACHE_MAX       = 4096;
 
 eq.hashString = function(str) {
     // a la goog.string.HashCode

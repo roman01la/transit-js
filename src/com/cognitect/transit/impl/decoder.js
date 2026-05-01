@@ -205,9 +205,21 @@ goog.scope(function () {
     };
 
     decoder.Decoder.prototype.decodeHash = function (hash, cache, asMapKey, tagValue) {
-        var ks = util.objectKeys(hash),
-            key = ks[0],
-            tag = ks.length == 1 ? this.decode(key, cache, false, false) : null;
+        // Fast path: check for single-key tagged value without allocating keys array
+        var ks = null, key = null, tag = null;
+        for (var p in hash) {
+            if (hash.hasOwnProperty(p)) {
+                if (key == null) {
+                    key = p;
+                } else {
+                    key = null; // more than one key
+                    break;
+                }
+            }
+        }
+        if (key != null) {
+            tag = this.decode(key, cache, false, false);
+        }
 
         if (decoder.isTag(tag)) {
             var val = hash[key],
@@ -217,7 +229,12 @@ goog.scope(function () {
             } else {
                 return types.taggedValue(tag.str, this.decode(val, cache, false, false));
             }
-        } else if (this.mapBuilder) {
+        }
+
+        // Multi-key hash - need full keys array
+        ks = ks || util.objectKeys(hash);
+
+        if (this.mapBuilder) {
             if ((ks.length < (types.SMALL_ARRAY_MAP_THRESHOLD * 2)) && this.mapBuilder.fromArray) {
                 var nodep = [];
                 for (var i = 0; i < ks.length; i++) {
