@@ -179,7 +179,7 @@ goog.scope(function() {
     types.Keyword.prototype["equiv"] = types.Keyword.prototype.equiv;
 
     types.Keyword.prototype.com$cognitect$transit$equals = function(other) {
-        return (other instanceof types.Keyword) && this._name == other._name;
+        return this === other || ((other instanceof types.Keyword) && this._name == other._name);
     };
 
     types.Keyword.prototype.com$cognitect$transit$hashCode = function() {
@@ -189,8 +189,16 @@ goog.scope(function() {
         return this.hashCode;
     };
 
+    types.keywordCache = {};
+
     types.keyword = function(s) {
-        return new types.Keyword(s);
+        var kw = types.keywordCache[s];
+        if(kw != null) {
+            return kw;
+        }
+        kw = new types.Keyword(s);
+        types.keywordCache[s] = kw;
+        return kw;
     };
 
     types.isKeyword = function(x) {
@@ -233,7 +241,7 @@ goog.scope(function() {
     types.Symbol.prototype["equiv"] = types.Symbol.prototype.equiv;
 
     types.Symbol.prototype.com$cognitect$transit$equals = function(other) {
-        return (other instanceof types.Symbol) && this._name == other._name;
+        return this === other || ((other instanceof types.Symbol) && this._name == other._name);
     };
 
     types.Symbol.prototype.com$cognitect$transit$hashCode = function() {
@@ -243,8 +251,16 @@ goog.scope(function() {
         return this.hashCode;
     };
 
+    types.symbolCache = {};
+
     types.symbol = function(s) {
-        return new types.Symbol(s);
+        var sym = types.symbolCache[s];
+        if(sym != null) {
+            return sym;
+        }
+        sym = new types.Symbol(s);
+        types.symbolCache[s] = sym;
+        return sym;
     };
 
     types.isSymbol = function(x) {
