@@ -55,13 +55,11 @@ caching.isCacheable = function(string, asMapKey) {
         if(asMapKey) {
             return true;
         } else {
-            var c0 = string.charAt(0),
-                c1 = string.charAt(1);
-            if(c0 === d.ESC) {
-                return c1 === ":" || c1 === "$" || c1 === "#";
-            } else {
-                return false;
+            if(string.charCodeAt(0) === 126) { // d.ESC = "~"
+                var c1 = string.charCodeAt(1);
+                return c1 === 58 || c1 === 36 || c1 === 35; // ":" "$" "#"
             }
+            return false;
         }
     } else {
         return false;
@@ -132,7 +130,7 @@ caching.writeCache = function() {
 // ReadCache
 
 caching.isCacheCode = function(string) {
-    return (string.charAt(0) === d.SUB) && (string.charAt(1) !== " ");
+    return (string.charCodeAt(0) === 94) && (string.charCodeAt(1) !== 32); // d.SUB = "^"
 };
 
 caching.codeToIdx = function(code) {

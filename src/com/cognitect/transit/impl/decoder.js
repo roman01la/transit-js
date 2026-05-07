@@ -191,17 +191,41 @@ goog.scope(function () {
     decoder.Decoder.prototype["decode"] = decoder.Decoder.prototype.decode;
 
     decoder.Decoder.prototype.decodeString = function (string, cache, asMapKey, tagValue) {
-        if (caching.isCacheable(string, asMapKey)) {
-            var val = this.parseString(string, cache, false);
-            if (cache) {
-                cache.write(val, asMapKey);
+        if (string.length > caching.MIN_SIZE_CACHEABLE) {
+            var c0 = string.charCodeAt(0);
+            if (c0 === 126) { // d.ESC = "~"
+                var c1 = string.charCodeAt(1);
+                // Fast path: keywords (~:) and symbols (~$) are the most common
+                if (c1 === 58) { // ":"
+                    var val = types.keyword(string.substring(2));
+                    if (cache) { cache.write(val, asMapKey); }
+                    return val;
+                } else if (c1 === 36) { // "$"
+                    var val = types.symbol(string.substring(2));
+                    if (cache) { cache.write(val, asMapKey); }
+                    return val;
+                } else if (c1 === 35) { // "#" (tag)
+                    var val = decoder.tag(string.substring(2));
+                    if (cache) { cache.write(val, asMapKey); }
+                    return val;
+                }
+                // Other ~ prefixed: fall through to parseString
+                var val = this.parseString(string, cache, false);
+                if (asMapKey || (c1 === 58 || c1 === 36 || c1 === 35)) {
+                    if (cache) { cache.write(val, asMapKey); }
+                }
+                return val;
+            } else if (asMapKey) {
+                // Non-~ string used as map key — cacheable when asMapKey
+                var val = this.parseString(string, cache, false);
+                if (cache) { cache.write(val, asMapKey); }
+                return val;
             }
-            return val;
-        } else if (caching.isCacheCode(string)) {
+        } else if (string.charCodeAt(0) === 94 && string.charCodeAt(1) !== 32) {
+            // d.SUB = "^", short cache code (length <= 3)
             return cache.read(string, asMapKey);
-        } else {
-            return this.parseString(string, cache, asMapKey);
         }
+        return this.parseString(string, cache, asMapKey);
     };
 
     decoder.Decoder.prototype.decodeHash = function (hash, cache, asMapKey, tagValue) {

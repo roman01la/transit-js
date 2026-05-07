@@ -185,12 +185,15 @@ goog.scope(function () {
     };
 
     writer.isStringableKey = function (em, k) {
-        if (typeof k !== "string") {
-            var h = em.handler(k);
-            return h && h.tag(k).length === 1;
-        } else {
+        if (typeof k === "string") {
             return true;
         }
+        // Keywords, Symbols have single-char tags - check directly
+        if (k != null && (k.constructor === types.Keyword || k.constructor === types.Symbol)) {
+            return true;
+        }
+        var h = em.handler(k);
+        return h && h.tag(k).length === 1;
     };
 
     /**
@@ -412,20 +415,27 @@ goog.scope(function () {
             obj = em.transform(obj);
         }
 
+        // Fast paths for primitives — skip handler dispatch entirely
+        if (obj == null) {
+            return em.emitNil(asMapKey, cache);
+        }
+        switch (typeof obj) {
+            case "string":
+                return em.emitString("", "", writer.escape(obj), asMapKey, cache);
+            case "number":
+                return em.emitInteger(obj, asMapKey, cache);
+            case "boolean":
+                return em.emitBoolean(obj, asMapKey, cache);
+        }
+
         var h = em.handler(obj) || (em.handlerForForeign ? em.handlerForForeign(obj, em.handlers) : null),
             tag = h ? h.tag(obj) : null,
             rep = h ? h.rep(obj) : null;
 
         if (h != null && tag != null) {
             switch (tag) {
-                case "_":
-                    return em.emitNil(asMapKey, cache);
-                    break;
                 case "s":
                     return em.emitString("", "", writer.escape(rep), asMapKey, cache);
-                    break;
-                case "?":
-                    return em.emitBoolean(rep, asMapKey, cache);
                     break;
                 case "i":
                     return em.emitInteger(rep, asMapKey, cache);
@@ -458,6 +468,10 @@ goog.scope(function () {
     };
 
     writer.maybeQuoted = function (em, obj) {
+        // Primitives always have single-char tags and need quoting
+        if (obj == null || typeof obj === "string" || typeof obj === "number" || typeof obj === "boolean") {
+            return types.quoted(obj);
+        }
         var h = em.handler(obj) || (em.handlerForForeign ? em.handlerForForeign(obj, em.handlers) : null);
 
         if (h != null) {
